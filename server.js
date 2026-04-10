@@ -1,50 +1,76 @@
 const express = require('express');
 const cors = require('cors');
+const Groq = require('groq-sdk');
 
 const app = express();
 
-// السماح للواجهة الأمامية (Frontend) بالاتصال بهذا الخادم
 app.use(cors());
-// السماح للخادم بقراءة البيانات المرسلة بصيغة JSON
 app.use(express.json());
 
-// المنفذ الذي سيعمل عليه الخادم (Render سيقوم بتحديده تلقائياً)
+// 🔒 هنا السحر! نحن نخبر الخادم أن يقرأ المفتاح من مكان آمن ومخفي بدلاً من كتابته هنا
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const groq = new Groq({ apiKey: GROQ_API_KEY });
+
 const PORT = process.env.PORT || 3000;
 
-// 1. مسار شرح الكود (Explain Code)
 app.post('/api/explain', async (req, res) => {
   const { code, language } = req.body;
 
   try {
-    console.log(`Received request to explain ${language} code.`);
+    console.log(`Asking Groq to explain ${language} code...`);
     
-    const explanation = `مرحباً! هذا رد تجريبي من خادمك الخاص 🚀\n\nلقد طلبت شرح كود مكتوب بلغة: ${language}\n\nالكود الخاص بك هو:\n${code}`;
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "أنت مبرمج خبير. اشرح الكود البرمجي التالي للمبتدئين بطريقة واضحة ومبسطة باللغة العربية."
+        },
+        {
+          role: "user",
+          content: `Explain this ${language} code:\n\n\`\`\`${language}\n${code}\n\`\`\``
+        }
+      ],
+      model: "llama3-8b-8192", 
+      temperature: 0.7,
+    });
 
-    // إرسال الرد إلى التطبيق
+    const explanation = chatCompletion.choices[0]?.message?.content || "عذراً، لم أتمكن من شرح الكود.";
     res.json({ explanation: explanation });
   } catch (error) {
-    console.error("Error in /api/explain:", error);
-    res.status(500).json({ error: "حدث خطأ داخلي في الخادم" });
+    console.error("Groq Error:", error);
+    res.status(500).json({ error: "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي." });
   }
 });
 
-// 2. مسار إصلاح الكود (Fix Code)
 app.post('/api/fix', async (req, res) => {
   const { code, error, language } = req.body;
 
   try {
-    console.log(`Received request to fix ${language} code.`);
+    console.log(`Asking Groq to fix ${language} code...`);
     
-    const fix = `مرحباً! هذا رد تجريبي من خادمك الخاص 🚀\n\nلقد طلبت إصلاح خطأ في لغة: ${language}\nالخطأ هو: ${error}`;
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "أنت مبرمج خبير. قم بإصلاح الخطأ في الكود التالي واشرح سبب الخطأ وكيفية حله باللغة العربية."
+        },
+        {
+          role: "user",
+          content: `The following ${language} code has an error: "${error}". Fix it and explain.\n\n\`\`\`${language}\n${code}\n\`\`\``
+        }
+      ],
+      model: "llama3-8b-8192",
+      temperature: 0.5,
+    });
 
+    const fix = chatCompletion.choices[0]?.message?.content || "عذراً، لم أتمكن من إصلاح الكود.";
     res.json({ fix: fix });
   } catch (err) {
-    console.error("Error in /api/fix:", err);
-    res.status(500).json({ error: "حدث خطأ داخلي في الخادم" });
+    console.error("Groq Error:", err);
+    res.status(500).json({ error: "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي." });
   }
 });
 
-// تشغيل الخادم
 app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);
 });
