@@ -7,7 +7,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔒 هنا السحر! نحن نخبر الخادم أن يقرأ المفتاح من مكان آمن ومخفي بدلاً من كتابته هنا
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const groq = new Groq({ apiKey: GROQ_API_KEY });
 
@@ -30,7 +29,7 @@ app.post('/api/explain', async (req, res) => {
           content: `Explain this ${language} code:\n\n\`\`\`${language}\n${code}\n\`\`\``
         }
       ],
-      model: "llama3-8b-8192", 
+      model: "llama-3.3-70b-versatile", 
       temperature: 0.7,
     });
 
@@ -59,7 +58,7 @@ app.post('/api/fix', async (req, res) => {
           content: `The following ${language} code has an error: "${error}". Fix it and explain.\n\n\`\`\`${language}\n${code}\n\`\`\``
         }
       ],
-      model: "llama3-8b-8192",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.5,
     });
 
